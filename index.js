@@ -34,7 +34,7 @@ class IntellifirePlatform {
                             // create a new accessory
                             const accessory = new this.api.platformAccessory(f.name, uuid);
                             this.log.debug(`Registering fireplae ${f.name} with serial ${f.serial}`);
-                            const fireplace = Fireplace(this.api, this.log, f.name, f.serial, '1.0', accessory, jar);
+                            const fireplace = new Fireplace(this.api, this.log, f.name, f.serial, '1.0', accessory, jar);
                             this.fireplaces.push(fireplace);
                             this.api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
                         }
@@ -42,7 +42,7 @@ class IntellifirePlatform {
                 })
             })
         }).form({ username: this.config.username, password: this.config.password});
-    },
+    }
 
     /**
      * REQUIRED - Homebridge will call the "configureAccessory" method once for every cached
@@ -91,7 +91,7 @@ class Fireplace {
             let data = JSON.parse(b);
             callback(null, (data.power === "1"));
         });
-    },
+    }
 
     setStatus(on, callback) {
         if (this.pullTimer)
@@ -100,7 +100,7 @@ class Fireplace {
         request.post({ url: `https://iftapi.net/a/${this.serialNumber}//apppost`, jar: this.cookieJar}, function(e, r, b) {
             callback();
         }).form({power: (on ? 1 : 0)});
-    },
+    }
 
 };
 
