@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Intellifire support",
   "license": "ISC",
+  "type": "module",
   "keywords": [
     "homebridge-plugin"
   ],
