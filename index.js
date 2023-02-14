@@ -106,6 +106,6 @@ class Fireplace {
 
 const platform = (api) => {
     UUIDGen = api.hap.uuid;
-    api.registerPlatform("homebridge-intellifire", "Intellifire", Intellifire);
+    api.registerPlatform("homebridge-intellifire", "Intellifire", IntellifirePlatform);
 }
 export default platform;
