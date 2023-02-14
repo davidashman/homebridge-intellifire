@@ -1,31 +1,26 @@
 "use strict";
 
-let Service, Characteristic, api;
-
 const request = require("request");
 const PullTimer = require("homebridge-http-base").PullTimer;
 
-module.exports = function (homebridge) {
-    Service = homebridge.hap.Service;
-    Characteristic = homebridge.hap.Characteristic;
-    api = homebridge;
+let UUIDGen;
 
-    homebridge.registerPlatform("homebridge-intellifire", "Intellifire", Intellifire);
-};
+class IntellifirePlatform {
 
-function Intellifire(log, config, api) {
-    // store restored cached accessories here
-    this.accessories = [];
-    this.fireplaces = [];
-    this.log = log;
-    this.config = config;
+    constructor(log, config, api) {
+        // store restored cached accessories here
+        this.accessories = [];
+        this.fireplaces = [];
+        this.log = log;
+        this.config = config;
+        this.api = api;
 
-    api.on('didFinishLaunching', this.registerFireplaces.bind(this));
-}
+        api.on('didFinishLaunching', () => {
+            this.registerFireplaces();
+        });
+    }
 
-Intellifire.prototype = {
-
-    registerFireplaces: function() {
+    registerFireplaces() {
         const jar = request.jar();
         request.post({ url: "https://iftapi.net/a//login", jar: jar}, function(e, r, b) {
             request.get({ url: "https://iftapi.net/a//enumlocations", jar: jar}, function(e, r, b) {
@@ -34,14 +29,14 @@ Intellifire.prototype = {
                 request.get({ url: `https://iftapi.net/a//enumfireplaces?location_id=${location_id}`, jar: jar}, function(e, r, b) {
                     let data = JSON.parse(b);
                     data.fireplaces.forEach((f) => {
-                        const uuid = api.hap.uuid.generate(f.serial);
+                        const uuid = this.api.hap.uuid.generate(f.serial);
                         if (!this.accessories.find(accessory => accessory.UUID === uuid)) {
                             // create a new accessory
-                            const accessory = new api.platformAccessory(f.name, uuid);
+                            const accessory = new this.api.platformAccessory(f.name, uuid);
                             this.log.debug(`Registering fireplae ${f.name} with serial ${f.serial}`);
-                            const fireplace = Fireplace(this.log, f.name, f.serial, '1.0', accessory, jar);
+                            const fireplace = Fireplace(this.api, this.log, f.name, f.serial, '1.0', accessory, jar);
                             this.fireplaces.push(fireplace);
-                            api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
+                            this.api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
                         }
                     });
                 })
@@ -53,44 +48,41 @@ Intellifire.prototype = {
      * REQUIRED - Homebridge will call the "configureAccessory" method once for every cached
      * accessory restored
      */
-    configureAccessory: function (accessory) {
+    configureAccessory(accessory) {
         this.accessories.push(accessory);
     }
 
 }
 
-function Fireplace(log, name, serialNumber, firmware_version, accessory, cookieJar) {
+class Fireplace {
 
-    this.log = log;
-    this.accessory = accessory;
-    this.serialNumber = serialNumber;
-    this.cookieJar = cookieJar;
+    constructor(api, log, name, serialNumber, firmware_version, accessory, cookieJar) {
+        this.log = log;
+        this.accessory = accessory;
+        this.serialNumber = serialNumber;
+        this.cookieJar = cookieJar;
 
-    const informationService = new Service.AccessoryInformation();
-    informationService
-        .setCharacteristic(Characteristic.Manufacturer, "Hearth and Home")
-        .setCharacteristic(Characteristic.Model, "Intellifire")
-        .setCharacteristic(Characteristic.SerialNumber, serialNumber)
-        .setCharacteristic(Characteristic.FirmwareRevision, firmware_version);
-    accessory.addService(informationService);
+        const informationService = new api.Service.AccessoryInformation();
+        informationService
+            .setCharacteristic(Characteristic.Manufacturer, "Hearth and Home")
+            .setCharacteristic(Characteristic.Model, "Intellifire")
+            .setCharacteristic(Characteristic.SerialNumber, serialNumber)
+            .setCharacteristic(Characteristic.FirmwareRevision, firmware_version);
+        accessory.addService(informationService);
 
-    this.service = new Service.Switch(name);
-    this.service.getCharacteristic(Characteristic.On)
-        .on("get", this.getStatus.bind(this))
-        .on("set", this.setStatus.bind(this));
-    accessory.addService(this.service);
+        this.service = new api.Service.Switch(name);
+        this.service.getCharacteristic(Characteristic.On)
+            .on("get", this.getStatus)
+            .on("set", this.setStatus);
+        accessory.addService(this.service);
 
-    this.pullTimer = new PullTimer(this.log, 60, this.getStatus.bind(this), value => {
-        this.service.getCharacteristic(Characteristic.On).updateValue(value);
-    });
-    this.pullTimer.start();
+        this.pullTimer = new PullTimer(this.log, 60, this.getStatus, value => {
+            this.service.getCharacteristic(Characteristic.On).updateValue(value);
+        });
+        this.pullTimer.start();
+    }
 
-    return this;
-}
-
-Fireplace.prototype = {
-
-    getStatus: function (callback) {
+    getStatus(callback) {
         if (this.pullTimer)
             this.pullTimer.resetTimer();
 
@@ -101,7 +93,7 @@ Fireplace.prototype = {
         });
     },
 
-    setStatus: function (on, callback) {
+    setStatus(on, callback) {
         if (this.pullTimer)
             this.pullTimer.resetTimer();
 
@@ -111,3 +103,9 @@ Fireplace.prototype = {
     },
 
 };
+
+const platform = (api) => {
+    UUIDGen = api.hap.uuid;
+    api.registerPlatform("homebridge-intellifire", "Intellifire", Intellifire);
+}
+export default platform;
