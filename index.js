@@ -3,6 +3,9 @@
 import request from "request";
 import PullTimer from "homebridge-http-base";
 
+let Service = this.api.hap.Service;
+let Characteristic = this.api.hap.Characteristic;
+
 class IntellifirePlatform {
 
     constructor(log, config, api) {
@@ -31,8 +34,22 @@ class IntellifirePlatform {
                         if (!this.accessories.find(accessory => accessory.UUID === uuid)) {
                             // create a new accessory
                             const accessory = new this.api.platformAccessory(f.name, uuid);
-                            this.log.debug(`Registering fireplae ${f.name} with serial ${f.serial}`);
-                            const fireplace = new Fireplace(this.api, this.log, f.name, f.serial, '1.0', accessory, this.cookieJar);
+                            accessory.context.serialNumber = f.serial;
+                            accessory.context.firmwareVersion = '1.0';
+
+                            const informationService = new Service.AccessoryInformation();
+                            informationService
+                                .setCharacteristic(Characteristic.Manufacturer, "Hearth and Home")
+                                .setCharacteristic(Characteristic.Model, "Intellifire")
+                                .setCharacteristic(Characteristic.SerialNumber, accessory.context.serialNumber)
+                                .setCharacteristic(Characteristic.FirmwareRevision, accessory.context.firmwareVersion);
+                            accessory.addService(informationService);
+
+                            const service = new Service.Switch(accessory.name);
+                            accessory.addService(service);
+
+                            this.log.debug(`Registering fireplae ${accessory.name} with serial ${accessory.context.serialNumber}`);
+                            const fireplace = new Fireplace(this.log, accessory, service, this.cookieJar);
                             this.fireplaces.push(fireplace);
                             this.api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
                         }
@@ -54,32 +71,18 @@ class IntellifirePlatform {
 
 class Fireplace {
 
-    constructor(api, log, name, serialNumber, firmware_version, accessory, cookieJar) {
+    constructor(log, accessory, service, cookieJar) {
         this.log = log;
         this.accessory = accessory;
-        this.serialNumber = serialNumber;
+        this.service = service;
         this.cookieJar = cookieJar;
-        this.api = api;
 
-        this.Service = this.api.hap.Service;
-        this.Characteristic = this.api.hap.Characteristic;
-
-        const informationService = new this.Service.AccessoryInformation();
-        informationService
-            .setCharacteristic(this.Characteristic.Manufacturer, "Hearth and Home")
-            .setCharacteristic(this.Characteristic.Model, "Intellifire")
-            .setCharacteristic(this.Characteristic.SerialNumber, serialNumber)
-            .setCharacteristic(this.Characteristic.FirmwareRevision, firmware_version);
-        accessory.addService(informationService);
-
-        this.service = new this.Service.Switch(name);
-        this.service.getCharacteristic(this.Characteristic.On)
+        service.getCharacteristic(Characteristic.On)
             .on("get", this.getStatus)
             .on("set", this.setStatus);
-        accessory.addService(this.service);
 
         this.pullTimer = new PullTimer(this.log, 60, this.getStatus, value => {
-            this.service.getCharacteristic(this.Characteristic.On).updateValue(value);
+            service.getCharacteristic(this.Characteristic.On).updateValue(value);
         });
         this.pullTimer.start();
     }
@@ -106,6 +109,8 @@ class Fireplace {
 };
 
 const platform = (api) => {
+    Service = this.api.hap.Service;
+    Characteristic = this.api.hap.Characteristic;
     api.registerPlatform("homebridge-intellifire", "Intellifire", IntellifirePlatform);
 }
 export default platform;
