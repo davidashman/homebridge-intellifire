@@ -3,8 +3,8 @@
 import request from "request";
 import PullTimer from "homebridge-http-base";
 
-let Service = this.api.hap.Service;
-let Characteristic = this.api.hap.Characteristic;
+let Service;
+let Characteristic;
 
 class IntellifirePlatform {
 
