@@ -19,7 +19,12 @@ function Intellifire(log, config, api) {
     this.accessories = [];
     this.fireplaces = [];
 
-    api.on('didFinishLaunching', () => {
+    api.on('didFinishLaunching', this.registerFireplaces.bind(this));
+}
+
+Intellifire.prototype = {
+
+    registerFireplaces: function() {
         const jar = request.jar();
         request.post({ url: "https://iftapi.net/a//login", jar: jar}, function(e, r, b) {
             request.get({ url: "https://iftapi.net/a//enumlocations", jar: jar}, function(e, r, b) {
@@ -28,10 +33,10 @@ function Intellifire(log, config, api) {
                 request.get({ url: `https://iftapi.net/a//enumfireplaces?location_id=${location_id}`, jar: jar}, function(e, r, b) {
                     let data = JSON.parse(b);
                     data.fireplaces.forEach((f) => {
-                        const uuid = this.api.hap.uuid.generate(f.serial);
+                        const uuid = api.hap.uuid.generate(f.serial);
                         if (!this.accessories.find(accessory => accessory.UUID === uuid)) {
                             // create a new accessory
-                            const accessory = new this.api.platformAccessory(f.name, uuid);
+                            const accessory = new api.platformAccessory(f.name, uuid);
                             const fireplace = Fireplace(log, f.name, f.serial, '1.0', accessory, jar);
                             this.fireplaces.push(fireplace);
                             api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
@@ -40,11 +45,8 @@ function Intellifire(log, config, api) {
 
                 })
             })
-        }).form({ username: config.auth.username, password: config.auth.password});
-    });
-}
-
-Intellifire.prototype = {
+        }).form({ username: config.username, password: config.password});
+    },
 
     /**
      * REQUIRED - Homebridge will call the "configureAccessory" method once for every cached
