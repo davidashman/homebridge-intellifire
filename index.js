@@ -40,6 +40,7 @@ Intellifire.prototype = {
                         if (!this.accessories.find(accessory => accessory.UUID === uuid)) {
                             // create a new accessory
                             const accessory = new this.api.platformAccessory(f.name, uuid);
+                            this.log.debug(`Registering fireplae ${f.name} with serial ${f.serial}`);
                             const fireplace = Fireplace(this.log, f.name, f.serial, '1.0', accessory, jar);
                             this.fireplaces.push(fireplace);
                             this.api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
