@@ -3,8 +3,6 @@
 import request from "request";
 import PullTimer from "homebridge-http-base";
 
-let UUIDGen;
-
 class IntellifirePlatform {
 
     constructor(log, config, api) {
@@ -61,8 +59,12 @@ class Fireplace {
         this.accessory = accessory;
         this.serialNumber = serialNumber;
         this.cookieJar = cookieJar;
+        this.api = api;
 
-        const informationService = new api.Service.AccessoryInformation();
+        this.Service = this.api.hap.Service;
+        this.Characteristic = this.api.hap.Characteristic;
+
+        const informationService = new this.Service.AccessoryInformation();
         informationService
             .setCharacteristic(Characteristic.Manufacturer, "Hearth and Home")
             .setCharacteristic(Characteristic.Model, "Intellifire")
@@ -70,14 +72,14 @@ class Fireplace {
             .setCharacteristic(Characteristic.FirmwareRevision, firmware_version);
         accessory.addService(informationService);
 
-        this.service = new api.Service.Switch(name);
-        this.service.getCharacteristic(Characteristic.On)
+        this.service = new this.Service.Switch(name);
+        this.service.getCharacteristic(this.Characteristic.On)
             .on("get", this.getStatus)
             .on("set", this.setStatus);
         accessory.addService(this.service);
 
         this.pullTimer = new PullTimer(this.log, 60, this.getStatus, value => {
-            this.service.getCharacteristic(Characteristic.On).updateValue(value);
+            this.service.getCharacteristic(this.Characteristic.On).updateValue(value);
         });
         this.pullTimer.start();
     }
@@ -86,8 +88,7 @@ class Fireplace {
         if (this.pullTimer)
             this.pullTimer.resetTimer();
 
-        request.get({ url: `https://iftapi.net/a/${this.serialNumber}//apppoll`, jar: this.cookieJar}, function(e, r, b) {
-            this.statusCache.queried(); // we only update lastQueried on successful query
+        request.get({ url: `https://iftapi.net/a/${this.serialNumber}//apppoll`, jar: this.cookieJar}, (e, r, b) => {
             let data = JSON.parse(b);
             callback(null, (data.power === "1"));
         });
@@ -97,7 +98,7 @@ class Fireplace {
         if (this.pullTimer)
             this.pullTimer.resetTimer();
 
-        request.post({ url: `https://iftapi.net/a/${this.serialNumber}//apppost`, jar: this.cookieJar}, function(e, r, b) {
+        request.post({ url: `https://iftapi.net/a/${this.serialNumber}//apppost`, jar: this.cookieJar}, (e, r, b) => {
             callback();
         }).form({power: (on ? 1 : 0)});
     }
@@ -105,7 +106,6 @@ class Fireplace {
 };
 
 const platform = (api) => {
-    UUIDGen = api.hap.uuid;
     api.registerPlatform("homebridge-intellifire", "Intellifire", IntellifirePlatform);
 }
 export default platform;
