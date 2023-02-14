@@ -18,6 +18,9 @@ function Intellifire(log, config, api) {
     // store restored cached accessories here
     this.accessories = [];
     this.fireplaces = [];
+    this.api = api;
+    this.log = log;
+    this.config = config;
 
     api.on('didFinishLaunching', this.registerFireplaces.bind(this));
 }
@@ -33,19 +36,19 @@ Intellifire.prototype = {
                 request.get({ url: `https://iftapi.net/a//enumfireplaces?location_id=${location_id}`, jar: jar}, function(e, r, b) {
                     let data = JSON.parse(b);
                     data.fireplaces.forEach((f) => {
-                        const uuid = api.hap.uuid.generate(f.serial);
+                        const uuid = this.api.hap.uuid.generate(f.serial);
                         if (!this.accessories.find(accessory => accessory.UUID === uuid)) {
                             // create a new accessory
-                            const accessory = new api.platformAccessory(f.name, uuid);
-                            const fireplace = Fireplace(log, f.name, f.serial, '1.0', accessory, jar);
+                            const accessory = new this.api.platformAccessory(f.name, uuid);
+                            const fireplace = Fireplace(this.log, f.name, f.serial, '1.0', accessory, jar);
                             this.fireplaces.push(fireplace);
-                            api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
+                            this.api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
                         }
                     });
 
                 })
             })
-        }).form({ username: config.username, password: config.password});
+        }).form({ username: this.config.username, password: this.config.password});
     },
 
     /**

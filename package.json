@@ -1,7 +1,7 @@
-{
-  "name": "homebridge-http-switch",
-  "version": "0.5.36",
-  "description": "Powerful http switch for Homebridge",
+v{
+  "name": "homebridge-intellifire",
+  "version": "0.1.0",
+  "description": "Intellifire support",
   "license": "ISC",
   "keywords": [
     "homebridge-plugin"
@@ -11,17 +11,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Supereg/homebridge-http-switch"
+    "url": "https://github.com/davidashman/homebridge-intellifire"
   },
   "bugs": {
-    "url": "https://github.com/Supereg/homebridge-http-switch/issues"
+    "url": "https://github.com/davidashman/homebridge-intellifire/issues"
   },
   "engines": {
     "node": ">=10.17.0",
     "homebridge": ">=0.4.8"
   },
   "dependencies": {
-    "homebridge-http-base": "~2.1.13"
+    "homebridge-http-base": "~2.1.13",
+    "request": "~2.88.2"
   },
   "devDependencies": {
     "homebridge": "^1.5.0"
