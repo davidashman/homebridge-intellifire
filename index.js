@@ -1,7 +1,7 @@
 "use strict";
 
-const request = require("request");
-const PullTimer = require("homebridge-http-base").PullTimer;
+import request from "request";
+import PullTimer from "homebridge-http-base";
 
 let UUIDGen;
 
