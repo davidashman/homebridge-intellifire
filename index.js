@@ -8,7 +8,6 @@ const PullTimer = require("homebridge-http-base").PullTimer;
 module.exports = function (homebridge) {
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
-
     api = homebridge;
 
     homebridge.registerPlatform("homebridge-intellifire", "Intellifire", Intellifire);
@@ -18,7 +17,6 @@ function Intellifire(log, config, api) {
     // store restored cached accessories here
     this.accessories = [];
     this.fireplaces = [];
-    this.api = api;
     this.log = log;
     this.config = config;
 
@@ -36,14 +34,14 @@ Intellifire.prototype = {
                 request.get({ url: `https://iftapi.net/a//enumfireplaces?location_id=${location_id}`, jar: jar}, function(e, r, b) {
                     let data = JSON.parse(b);
                     data.fireplaces.forEach((f) => {
-                        const uuid = this.api.hap.uuid.generate(f.serial);
+                        const uuid = api.hap.uuid.generate(f.serial);
                         if (!this.accessories.find(accessory => accessory.UUID === uuid)) {
                             // create a new accessory
-                            const accessory = new this.api.platformAccessory(f.name, uuid);
+                            const accessory = new api.platformAccessory(f.name, uuid);
                             this.log.debug(`Registering fireplae ${f.name} with serial ${f.serial}`);
                             const fireplace = Fireplace(this.log, f.name, f.serial, '1.0', accessory, jar);
                             this.fireplaces.push(fireplace);
-                            this.api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
+                            api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
                         }
                     });
                 })
