@@ -45,7 +45,6 @@ Intellifire.prototype = {
                             this.api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
                         }
                     });
-
                 })
             })
         }).form({ username: this.config.username, password: this.config.password});
