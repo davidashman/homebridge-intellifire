@@ -66,10 +66,10 @@ class Fireplace {
 
         const informationService = new this.Service.AccessoryInformation();
         informationService
-            .setCharacteristic(Characteristic.Manufacturer, "Hearth and Home")
-            .setCharacteristic(Characteristic.Model, "Intellifire")
-            .setCharacteristic(Characteristic.SerialNumber, serialNumber)
-            .setCharacteristic(Characteristic.FirmwareRevision, firmware_version);
+            .setCharacteristic(this.Characteristic.Manufacturer, "Hearth and Home")
+            .setCharacteristic(this.Characteristic.Model, "Intellifire")
+            .setCharacteristic(this.Characteristic.SerialNumber, serialNumber)
+            .setCharacteristic(this.Characteristic.FirmwareRevision, firmware_version);
         accessory.addService(informationService);
 
         this.service = new this.Service.Switch(name);
