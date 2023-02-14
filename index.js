@@ -14,6 +14,7 @@ class IntellifirePlatform {
         this.log = log;
         this.config = config;
         this.api = api;
+        this.cookieJar = request.jar();
 
         api.on('didFinishLaunching', () => {
             this.registerFireplaces();
@@ -21,12 +22,11 @@ class IntellifirePlatform {
     }
 
     registerFireplaces() {
-        const jar = request.jar();
-        request.post({ url: "https://iftapi.net/a//login", jar: jar}, function(e, r, b) {
-            request.get({ url: "https://iftapi.net/a//enumlocations", jar: jar}, function(e, r, b) {
+        request.post({ url: "https://iftapi.net/a//login", jar: this.cookieJar}, (e, r, b) => {
+            request.get({ url: "https://iftapi.net/a//enumlocations", jar: this.cookieJar}, (e, r, b) => {
                 let data = JSON.parse(b);
                 let location_id = data.locations[0].location_id;
-                request.get({ url: `https://iftapi.net/a//enumfireplaces?location_id=${location_id}`, jar: jar}, function(e, r, b) {
+                request.get({ url: `https://iftapi.net/a//enumfireplaces?location_id=${location_id}`, jar: this.cookieJar}, (e, r, b) => {
                     let data = JSON.parse(b);
                     data.fireplaces.forEach((f) => {
                         const uuid = this.api.hap.uuid.generate(f.serial);
@@ -34,7 +34,7 @@ class IntellifirePlatform {
                             // create a new accessory
                             const accessory = new this.api.platformAccessory(f.name, uuid);
                             this.log.debug(`Registering fireplae ${f.name} with serial ${f.serial}`);
-                            const fireplace = new Fireplace(this.api, this.log, f.name, f.serial, '1.0', accessory, jar);
+                            const fireplace = new Fireplace(this.api, this.log, f.name, f.serial, '1.0', accessory, this.cookieJar);
                             this.fireplaces.push(fireplace);
                             this.api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
                         }
