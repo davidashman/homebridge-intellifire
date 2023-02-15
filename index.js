@@ -1,7 +1,8 @@
 "use strict";
 
 import {fetch, CookieJar} from 'node-fetch-cookies';
-import http from "homebridge-http-base";
+import { Buffer } from 'node:buffer';
+import { createHash } from 'node:crypto';
 
 let Service;
 let Characteristic;
@@ -17,7 +18,7 @@ class IntellifirePlatform {
         this.api = api;
         this.cookieJar = new CookieJar();
         this.login = this._login();
-        this.local = false;
+        this.local = true;
 
         this.api.on('didFinishLaunching', () => {
             this.login.then(() => {
@@ -106,6 +107,8 @@ class Fireplace {
         this.serialNumber = accessory.context.serialNumber;
         this.power = false;
         this.local = local;
+        this.apiKeyBuffer = Buffer.from(accessory.context.apiKey);
+        this.userId = cookieJar.cookies.get('iftapi.net').get('user').value;
 
         this.service = accessory.getService(Service.Switch);
         this.service.getCharacteristic(Characteristic.On)
@@ -129,7 +132,7 @@ class Fireplace {
     queryStatus(callback) {
         this.log.info(`Querying for status on ${this.name}.`);
         if (this.local) {
-            fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`).then((response) => {
+            fetch(this.cookieJar, `http://192.168.1.188/poll`).then((response) => {
                 this.log(`Response from Intellifire: ${response.statusText}`);
                 response.json().then((data) => {
                     this.log(`Status response: ${data.power === "0" ? "off" : "on"}`);
@@ -151,23 +154,59 @@ class Fireplace {
     }
 
     setStatus(on, callback) {
-        const params = new URLSearchParams();
-        params.append("power", (on ? "1" : "0"));
-        fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppost`, {
-            method: "POST",
-            body: params
-        }).then((response) => {
-            if (response.ok) {
-                this.power = on;
-                this.log.info(`Fireplace ${this.name} power changed to ${on}: ${response.statusText}`);
-                response.text().then((text) => { this.log.info(`Fireplace update response: ${text}`) });
-                callback();
-            }
-            else {
-                this.log.info(`Fireplace ${this.name} power failed to update: ${response.statusText}`);
-                callback(response.statusText);
-            }
-        });
+        if (this.local) {
+            fetch(this.cookieJar, `http://192.168.1.188/get_challenge`)
+                .then((response) => {
+                    if (response.ok) {
+                        response.text().then(challenge => {
+                            const challengeBuffer = Buffer.from(challenge, 'hex');
+                            const payloadBuffer = Buffer.from(`power=(on ? "1" : "0"))`);
+                            const sig = createHash('sha256').update(Buffer.concat([this.apiKeyBuffer, challengeBuffer, payloadBuffer])).digest();
+                            const resp = createHash('sha256').update(Buffer.concat([this.apiKeyBuffer, sig])).digest('hex');
+
+                            const params = new URLSearchParams();
+                            params.append("command", "power");
+                            params.append("value", (on ? "1" : "0"));
+                            params.append("user", this.userId);
+                            params.append("response", resp);
+
+                            fetch(this.cookieJar, 'http://192.168.1.188/post', {
+                                method: 'POST',
+                                body: params
+                            }).then(response => {
+                                this.power = on;
+                                this.log.info(`Fireplace ${this.name} power changed to ${on}`);
+                                response.text().then((text) => { this.log.info(`Fireplace update response: ${text}`) });
+                                callback();
+                            })
+                        });
+                    }
+                    else {
+                        this.log.info(`Fireplace ${this.name} power failed to update: ${response.statusText}`);
+                        callback(response.statusText);
+                    }
+                });
+        }
+        else {
+            const params = new URLSearchParams();
+            params.append("power", (on ? "1" : "0"));
+
+            fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppost`, {
+                method: "POST",
+                body: params
+            }).then((response) => {
+                if (response.ok) {
+                    this.power = on;
+                    this.log.info(`Fireplace ${this.name} power changed to ${on}: ${response.statusText}`);
+                    response.text().then((text) => { this.log.info(`Fireplace update response: ${text}`) });
+                    callback();
+                }
+                else {
+                    this.log.info(`Fireplace ${this.name} power failed to update: ${response.statusText}`);
+                    callback(response.statusText);
+                }
+            });
+        }
     }
 
 }
