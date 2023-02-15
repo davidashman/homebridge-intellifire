@@ -83,7 +83,7 @@ class IntellifirePlatform {
     configureAccessory(accessory) {
         this.login.then(() => {
             this.accessories.push(accessory);
-            if (accessory.context.serialNumber) {
+            if (accessory.context.apiKey) {
                 if (!this.fireplaces.find(fireplace => fireplace.serialNumber === accessory.context.serialNumber)) {
                     this.log.info(`Creating fireplace for existing accessory ${accessory.context.fireplaceName} with serial number ${accessory.context.serialNumber} and UUID ${accessory.UUID}.`);
                     this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
