@@ -8,7 +8,7 @@ let Characteristic;
 
 class IntellifirePlatform {
 
-    async constructor(log, config, api) {
+    constructor(log, config, api) {
         // store restored cached accessories here
         this.accessories = [];
         this.fireplaces = [];
@@ -48,7 +48,6 @@ class IntellifirePlatform {
     }
 
     async registerFireplaces() {
-        await login();
 //	this.log.debug("Logging into Intellifire...");
         //       request.post({ url: "https://iftapi.net/a//login", jar: this.cookieJar}, (e, r, b) => {
         this.log.info("Discovering locations...");
@@ -180,7 +179,7 @@ class Fireplace {
             method: "POST",
             body: params
         }).then(callback);
-        
+
         // request.post({url: `https://iftapi.net/a/${this.serialNumber}//apppost`, jar: this.cookieJar}, (e, r, b) => {
         //     callback();
         // }).form({power: (on ? 1 : 0)});
