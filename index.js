@@ -103,32 +103,35 @@ class Fireplace {
         this.cookieJar = cookieJar;
         this.name = accessory.context.fireplaceName;
         this.serialNumber = accessory.context.serialNumber;
+        this.power = false;
 
-        const service = accessory.getService(Service.Switch);
-        service.getCharacteristic(Characteristic.On)
+        this.service = accessory.getService(Service.Switch);
+        this.service.getCharacteristic(Characteristic.On)
             .on("get", (callback) => {
-                this.getStatus(callback);
+                callback(this.power);
             })
             .on("set", (value, callback) => {
                 this.setStatus(value, callback);
             });
 
+        this.queryStatus((e, v) => { this.log.info(`Initial status: ${v}`)});
         this.pullTimer = new http.PullTimer(log, 60000, (callback) => {
-            this.getStatus(callback);
+            this.queryStatus(callback);
         }, value => {
-            service.getCharacteristic(Characteristic.On).updateValue(value);
+            this.service.getCharacteristic(Characteristic.On).updateValue(value);
         });
         this.pullTimer.start();
     }
 
-    getStatus(callback) {
+    queryStatus(callback) {
         this.pullTimer.resetTimer();
         this.log.info(`Querying for status on ${this.name}.`);
         fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`).then((response) => {
             this.log(`Response from Intellifire: ${response.statusText}`);
             response.json().then((data) => {
                 this.log(`Status response: ${data.power === "0" ? "off" : "on"}`);
-                callback(null, (data.power === "1"));
+                this.power = (data.power === "1");
+                callback(null, this.power);
             })
         })
     }
@@ -141,6 +144,7 @@ class Fireplace {
             body: params
         }).then((response) => {
             if (response.ok) {
+                this.power = on;
                 this.log.info(`Fireplace ${this.name} power changed to ${on}: ${response.statusText}`);
                 response.text().then((text) => { this.log.info(`Fireplace update response: ${text}`) });
                 callback();
