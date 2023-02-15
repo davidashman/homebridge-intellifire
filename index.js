@@ -124,23 +124,18 @@ class Fireplace {
     }
 
     getStatus(callback) {
-        if (this.pullTimer)
-            this.pullTimer.resetTimer();
-
+        this.pullTimer.resetTimer();
         this.log.info(`Querying for status on ${this.name}.`);
         fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`).then((response) => {
             this.log(`Response from Intellifire: ${response.statusText}`);
             response.json().then((data) => {
-                this.log(`Status response: ${data}`);
+                this.log(`Status response: ${data.power}`);
                 callback(null, (data.power === "1"));
             })
         })
     }
 
     setStatus(on, callback) {
-        if (this.pullTimer)
-            this.pullTimer.resetTimer();
-
         const params = new URLSearchParams();
         params.append("power", (on ? 1 : 0));
         fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppost`, {
@@ -148,7 +143,8 @@ class Fireplace {
             body: params
         }).then((response) => {
             if (response.ok) {
-                this.log.info(`Fireplace ${this.name} power changed to ${on}`);
+                this.log.info(`Fireplace ${this.name} power changed to ${on}: ${response.statusText}`);
+                response.text().then((text) => { this.log.info(`Fireplace update response: ${text}`) });
                 callback();
             }
             else {
