@@ -1,7 +1,6 @@
 "use strict";
 
 import {fetch, CookieJar} from 'node-fetch-cookies';
-import rp from "request-promise-native";
 import http from "homebridge-http-base";
 
 let Service;
@@ -9,7 +8,7 @@ let Characteristic;
 
 class IntellifirePlatform {
 
-    constructor(log, config, api) {
+    async constructor(log, config, api) {
         // store restored cached accessories here
         this.accessories = [];
         this.fireplaces = [];
@@ -41,11 +40,11 @@ class IntellifirePlatform {
         // })
     }
 
-    registerFireplaces() {
+    async registerFireplaces() {
 //	this.log.debug("Logging into Intellifire...");
         //       request.post({ url: "https://iftapi.net/a//login", jar: this.cookieJar}, (e, r, b) => {
         this.log.info("Discovering locations...");
-        let r = await fetch(this.cookieJar,"https://iftapi.net/a//enumlocations");
+        let r = await fetch(this.cookieJar, "https://iftapi.net/a//enumlocations");
         let data = r.json();
         let location_id = data.locations[0].location_id;
 
@@ -145,7 +144,7 @@ class Fireplace {
         this.pullTimer.start();
     }
 
-    getStatus(callback) {
+    async getStatus(callback) {
         if (this.pullTimer)
             this.pullTimer.resetTimer();
 
@@ -158,7 +157,7 @@ class Fireplace {
         // });
     }
 
-    setStatus(on, callback) {
+    async setStatus(on, callback) {
         if (this.pullTimer)
             this.pullTimer.resetTimer();
 
