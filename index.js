@@ -79,8 +79,13 @@ class IntellifirePlatform {
     configureAccessory(accessory) {
         this.login.then(() => {
             this.accessories.push(accessory);
-            this.log.info(`Creating fireplace for ${accessory.context.fireplaceName}.`);
-            this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
+            if (accessory.context.serialNumber) {
+                this.log.info(`Creating fireplace for ${accessory.context.fireplaceName}.`);
+                this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
+            }
+            else {
+                this.api.unregisterPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
+            }
         })
     }
 
