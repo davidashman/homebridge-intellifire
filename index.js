@@ -19,7 +19,9 @@ class IntellifirePlatform {
         this.login = this._login();
 
         this.api.on('didFinishLaunching', () => {
-            this.login.then(this.registerFireplaces);
+            this.login.then(() => {
+                this.registerFireplaces();
+            })
         })
 
         //         // this.api.on('didFinishLaunching', this.registerFireplaces);
@@ -159,10 +161,9 @@ class Fireplace {
 
         this.log.info(`Querying for status on ${this.name}.`);
 
-        fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`)
-            .then((r) => {
-                callback(null, (r.json().power === "1"));
-            })
+        fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`).then((r) => {
+            callback(null, (r.json().power === "1"));
+        })
         // request.get({url: `https://iftapi.net/a/${this.serialNumber}//apppoll`, jar: this.cookieJar}, (e, r, b) => {
         //     let data = JSON.parse(b);
         //     callback(null, (data.power === "1"));
@@ -178,7 +179,9 @@ class Fireplace {
         fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppost`, {
             method: "POST",
             body: params
-        }).then(callback);
+        }).then(() => {
+            callback();
+        });
 
         // request.post({url: `https://iftapi.net/a/${this.serialNumber}//apppost`, jar: this.cookieJar}, (e, r, b) => {
         //     callback();
