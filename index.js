@@ -16,7 +16,7 @@ class IntellifirePlatform {
         this.config = config;
         this.api = api;
         this.cookieJar = new CookieJar();
-        this.login = _login();
+        this.login = this._login();
 
         this.api.on('didFinishLaunching', () => {
             this.login.then(this.registerFireplaces);
