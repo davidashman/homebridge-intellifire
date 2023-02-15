@@ -20,7 +20,8 @@ class IntellifirePlatform {
         this.log.info("Logging into Intellifire...");
         request.post({url: "https://iftapi.net/a//login", jar: this.cookieJar}, (e, r, b) => {
             this.log.info(`Logged in with response ${r.statusCode}.`)
-            api.on('didFinishLaunching', this.registerFireplaces);
+            // this.api.on('didFinishLaunching', this.registerFireplaces);
+            this.registerFireplaces();
         }).form({username: this.config.username, password: this.config.password});
     }
 
