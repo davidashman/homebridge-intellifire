@@ -43,13 +43,11 @@ class IntellifirePlatform {
         this.log.info("Discovering locations...");
         let r = await fetch(this.cookieJar, "https://iftapi.net/a//enumlocations");
         let data = await r.json();
-        this.log.info(data);
         let location_id = data.locations[0].location_id;
 
         this.log.info("Discovering fireplaces...");
         r = await fetch(this.cookieJar, `https://iftapi.net/a//enumfireplaces?location_id=${location_id}`);
         data = await r.json();
-        this.log.info(data);
         this.log.info(`Found ${data.fireplaces.length} fireplaces.`);
 
         data.fireplaces.forEach((f) => {
@@ -129,7 +127,7 @@ class Fireplace {
         fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`).then((response) => {
             this.log(`Response from Intellifire: ${response.statusText}`);
             response.json().then((data) => {
-                this.log(`Status response: ${data.power === 0 ? "off" : "on"}`);
+                this.log(`Status response: ${data.power === "0" ? "off" : "on"}`);
                 callback(null, (data.power === "1"));
             })
         })
