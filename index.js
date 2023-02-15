@@ -50,16 +50,16 @@ class IntellifirePlatform {
     }
 
     async registerFireplaces() {
-//	this.log.debug("Logging into Intellifire...");
-        //       request.post({ url: "https://iftapi.net/a//login", jar: this.cookieJar}, (e, r, b) => {
         this.log.info("Discovering locations...");
         let r = await fetch(this.cookieJar, "https://iftapi.net/a//enumlocations");
         let data = r.json();
+        this.log.info(data);
         let location_id = data.locations[0].location_id;
 
         this.log.info("Discovering fireplaces...");
         r = await fetch(this.cookieJar, `https://iftapi.net/a//enumfireplaces?location_id=${location_id}`);
         data = r.json();
+        this.log.info(data);
         this.log.info(`Found ${data.fireplaces.length} fireplaces.`);
 
         data.fireplaces.forEach((f) => {
@@ -80,46 +80,6 @@ class IntellifirePlatform {
                 this.api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
             }
         });
-
-        // request.get({url: "https://iftapi.net/a//enumlocations", jar: this.cookieJar}, (e, r, b) => {
-        //     let data = JSON.parse(b);
-        //     let location_id = data.locations[0].location_id;
-        //     this.log.info("Discovering fireplaces...");
-        //     request.get({
-        //         url: `https://iftapi.net/a//enumfireplaces?location_id=${location_id}`,
-        //         jar: this.cookieJar
-        //     }, (e, r, b) => {
-        //         let data = JSON.parse(b);
-        //         this.log.info(`Found ${data.fireplaces.length} fireplaces.`);
-        //         data.fireplaces.forEach((f) => {
-        //             this.log.info(`Registering ${f.name}...`);
-        //             const uuid = this.api.hap.uuid.generate(f.serial);
-        //             if (!this.accessories.find(accessory => accessory.UUID === uuid)) {
-        //                 // create a new accessory
-        //                 const accessory = new this.api.platformAccessory(f.name, uuid);
-        //                 accessory.context.fireplaceName = f.name;
-        //                 accessory.context.serialNumber = f.serial;
-        //                 accessory.context.firmwareVersion = '1.0';
-        //
-        //                 //const informationService = new Service.AccessoryInformation();
-        //                 //informationService
-        //                 //    .setCharacteristic(Characteristic.Manufacturer, "Hearth and Home")
-        //                 //    .setCharacteristic(Characteristic.Model, "Intellifire")
-        //                 //    .setCharacteristic(Characteristic.SerialNumber, accessory.context.serialNumber)
-        //                 //    .setCharacteristic(Characteristic.FirmwareRevision, accessory.context.firmwareVersion);
-        //                 //accessory.addService(informationService);
-        //                 accessory.addService(new Service.Switch(accessory.context.fireplaceName));
-        //
-        //                 this.log.info(`Creating fireplace for ${accessory.context.fireplaceName}.`);
-        //                 this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
-        //
-        //                 this.log.info(`Registering fireplace ${accessory.context.fireplaceName} with serial ${accessory.context.serialNumber}`);
-        //                 this.api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
-        //             }
-        //         });
-        //     });
-        // });
-//        }).form({ username: this.config.username, password: this.config.password});
     }
 
     /**
