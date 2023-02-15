@@ -109,7 +109,7 @@ class Fireplace {
                 this.setStatus(value, callback);
             });
 
-        this.pullTimer = new http.PullTimer(log, 60, (callback) => {
+        this.pullTimer = new http.PullTimer(log, 60000, (callback) => {
             this.getStatus(callback);
         }, value => {
             service.getCharacteristic(Characteristic.On).updateValue(value);
