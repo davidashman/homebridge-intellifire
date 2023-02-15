@@ -16,18 +16,11 @@ class IntellifirePlatform {
         this.config = config;
         this.api = api;
         this.cookieJar = new CookieJar();
+        this.login = _login();
 
-        this.loginParams = new URLSearchParams();
-        this.loginParams.append('username', this.config.username);
-        this.loginParams.append('password', this.config.password);
-
-        this.log.info("Logging into Intellifire...");
-        let r = await fetch(this.cookieJar, "https://iftapi.net/a//login", {
-            method: "POST",
-            body: this.loginParams
-        });
-        this.log.info(`Logged in with response ${r.status}.`);
-        this.api.on('didFinishLaunching', this.registerFireplaces);
+        this.api.on('didFinishLaunching', () => {
+            this.login.then(this.registerFireplaces);
+        })
 
         //         // this.api.on('didFinishLaunching', this.registerFireplaces);
         //         this.registerFireplaces();
@@ -40,7 +33,22 @@ class IntellifirePlatform {
         // })
     }
 
+    async _login() {
+        this.log.info("Logging into Intellifire...");
+
+        const loginParams = new URLSearchParams();
+        loginParams.append('username', this.config.username);
+        loginParams.append('password', this.config.password);
+
+        let r = await fetch(this.cookieJar, "https://iftapi.net/a//login", {
+            method: "POST",
+            body: this.loginParams
+        });
+        this.log.info(`Logged in with response ${r.status}.`);
+    }
+
     async registerFireplaces() {
+        await login();
 //	this.log.debug("Logging into Intellifire...");
         //       request.post({ url: "https://iftapi.net/a//login", jar: this.cookieJar}, (e, r, b) => {
         this.log.info("Discovering locations...");
@@ -118,9 +126,11 @@ class IntellifirePlatform {
      * accessory restored
      */
     configureAccessory(accessory) {
-        this.accessories.push(accessory);
-        this.log.info(`Creating fireplace for ${accessory.context.fireplaceName}.`);
-        this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
+        this.login.then(() => {
+            this.accessories.push(accessory);
+            this.log.info(`Creating fireplace for ${accessory.context.fireplaceName}.`);
+            this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
+        })
     }
 
 }
@@ -144,30 +154,33 @@ class Fireplace {
         this.pullTimer.start();
     }
 
-    async getStatus(callback) {
+    getStatus(callback) {
         if (this.pullTimer)
             this.pullTimer.resetTimer();
 
         this.log.info(`Querying for status on ${this.name}.`);
-        let r = await fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`);
-        callback(null, (r.json().power === "1"));
+
+        fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`)
+            .then((r) => {
+                callback(null, (r.json().power === "1"));
+            })
         // request.get({url: `https://iftapi.net/a/${this.serialNumber}//apppoll`, jar: this.cookieJar}, (e, r, b) => {
         //     let data = JSON.parse(b);
         //     callback(null, (data.power === "1"));
         // });
     }
 
-    async setStatus(on, callback) {
+    setStatus(on, callback) {
         if (this.pullTimer)
             this.pullTimer.resetTimer();
 
         const params = new URLSearchParams();
         params.append("power", (on ? 1 : 0));
-        await fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppost`, {
+        fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppost`, {
             method: "POST",
             body: params
-        });
-        callback();
+        }).then(callback);
+        
         // request.post({url: `https://iftapi.net/a/${this.serialNumber}//apppost`, jar: this.cookieJar}, (e, r, b) => {
         //     callback();
         // }).form({power: (on ? 1 : 0)});
