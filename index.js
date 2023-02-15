@@ -42,7 +42,7 @@ class IntellifirePlatform {
 
         let r = await fetch(this.cookieJar, "https://iftapi.net/a//login", {
             method: "POST",
-            body: this.loginParams
+            body: loginParams
         });
         this.log.info(`Logged in with response ${r.status}.`);
     }
