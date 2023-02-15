@@ -17,6 +17,7 @@ class IntellifirePlatform {
         this.api = api;
         this.cookieJar = new CookieJar();
         this.login = this._login();
+        this.local = false;
 
         this.api.on('didFinishLaunching', () => {
             this.login.then(() => {
@@ -62,11 +63,11 @@ class IntellifirePlatform {
                 const accessory = new this.api.platformAccessory(f.name, uuid);
                 accessory.context.fireplaceName = f.name;
                 accessory.context.serialNumber = f.serial;
-                accessory.context.firmwareVersion = '1.0';
+                accessory.context.apiKey = f.apikey;
                 accessory.addService(new Service.Switch(accessory.context.fireplaceName));
 
                 this.log.info(`Creating fireplace for ${accessory.context.fireplaceName} with serial number ${accessory.context.serialNumber} and UUID ${accessory.UUID}.`);
-                this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
+                this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar, this.local));
 
                 this.log.info(`Registering fireplace ${accessory.context.fireplaceName} with serial ${accessory.context.serialNumber}`);
                 this.api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
@@ -97,13 +98,14 @@ class IntellifirePlatform {
 
 class Fireplace {
 
-    constructor(log, accessory, cookieJar) {
+    constructor(log, accessory, cookieJar, local) {
         this.log = log;
         this.accessory = accessory;
         this.cookieJar = cookieJar;
         this.name = accessory.context.fireplaceName;
         this.serialNumber = accessory.context.serialNumber;
         this.power = false;
+        this.local = local;
 
         this.service = accessory.getService(Service.Switch);
         this.service.getCharacteristic(Characteristic.On)
@@ -126,14 +128,26 @@ class Fireplace {
 
     queryStatus(callback) {
         this.log.info(`Querying for status on ${this.name}.`);
-        fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`).then((response) => {
-            this.log(`Response from Intellifire: ${response.statusText}`);
-            response.json().then((data) => {
-                this.log(`Status response: ${data.power === "0" ? "off" : "on"}`);
-                this.power = (data.power === "1");
-                callback(null, this.power);
-            })
-        })
+        if (this.local) {
+            fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`).then((response) => {
+                this.log(`Response from Intellifire: ${response.statusText}`);
+                response.json().then((data) => {
+                    this.log(`Status response: ${data.power === "0" ? "off" : "on"}`);
+                    this.power = (data.power === "1");
+                    callback(null, this.power);
+                })
+            });
+        }
+        else {
+            fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`).then((response) => {
+                this.log(`Response from Intellifire: ${response.statusText}`);
+                response.json().then((data) => {
+                    this.log(`Status response: ${data.power === "0" ? "off" : "on"}`);
+                    this.power = (data.power === "1");
+                    callback(null, this.power);
+                })
+            });
+        }
     }
 
     setStatus(on, callback) {
