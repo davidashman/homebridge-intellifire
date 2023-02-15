@@ -108,7 +108,7 @@ class Fireplace {
         this.service = accessory.getService(Service.Switch);
         this.service.getCharacteristic(Characteristic.On)
             .on("get", (callback) => {
-                callback(this.power);
+                callback(null, this.power);
             })
             .on("set", (value, callback) => {
                 this.setStatus(value, callback);
@@ -131,7 +131,7 @@ class Fireplace {
             response.json().then((data) => {
                 this.log(`Status response: ${data.power === "0" ? "off" : "on"}`);
                 this.power = (data.power === "1");
-                callback(this.power);
+                callback(null, this.power);
             })
         })
     }
