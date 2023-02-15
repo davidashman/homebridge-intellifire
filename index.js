@@ -94,6 +94,7 @@ class IntellifirePlatform {
 class Fireplace {
 
     constructor(log, accessory, cookieJar) {
+        this.log = log;
         this.accessory = accessory;
         this.cookieJar = cookieJar;
         this.name = accessory.context.fireplaceName;
