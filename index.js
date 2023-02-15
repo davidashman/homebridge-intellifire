@@ -101,8 +101,12 @@ class Fireplace {
 
         const service = accessory.getService(Service.Switch);
         service.getCharacteristic(Characteristic.On)
-            .on("get", this.getStatus)
-            .on("set", this.setStatus);
+            .on("get", (callback) => {
+                this.getStatus(callback);
+            })
+            .on("set", (value, callback) => {
+                this.setStatus(value, callback);
+            });
 
         this.pullTimer = new http.PullTimer(log, 60, this.getStatus, value => {
             service.getCharacteristic(Characteristic.On).updateValue(value);
