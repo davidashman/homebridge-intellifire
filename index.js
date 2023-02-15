@@ -116,6 +116,7 @@ class Fireplace {
 
         this.queryStatus((e, v) => { this.log.info(`Initial status: ${v}`)});
         this.pullTimer = new http.PullTimer(log, 60000, (callback) => {
+            this.pullTimer.resetTimer();
             this.queryStatus(callback);
         }, value => {
             this.service.getCharacteristic(Characteristic.On).updateValue(value);
@@ -124,7 +125,6 @@ class Fireplace {
     }
 
     queryStatus(callback) {
-        this.pullTimer.resetTimer();
         this.log.info(`Querying for status on ${this.name}.`);
         fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`).then((response) => {
             this.log(`Response from Intellifire: ${response.statusText}`);
