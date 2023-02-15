@@ -128,8 +128,10 @@ class Fireplace {
             this.pullTimer.resetTimer();
 
         this.log.info(`Querying for status on ${this.name}.`);
-        fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`).then((r) => {
-            r.json().then((data) => {
+        fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`).then((response) => {
+            this.log(`Response from Intellifire: ${response.statusText}`);
+            response.json().then((data) => {
+                this.log(`Status response: ${data}`);
                 callback(null, (data.power === "1"));
             })
         })
@@ -144,8 +146,15 @@ class Fireplace {
         fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppost`, {
             method: "POST",
             body: params
-        }).then(() => {
-            callback();
+        }).then((response) => {
+            if (response.ok) {
+                this.log.info(`Fireplace ${this.name} power changed to ${on}`);
+                callback();
+            }
+            else {
+                this.log.info(`Fireplace ${this.name} power failed to update: ${response.statusText}`);
+                callback(response.statusText);
+            }
         });
     }
 
