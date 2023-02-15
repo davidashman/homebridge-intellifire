@@ -19,9 +19,8 @@ class IntellifirePlatform {
 
         this.log.info("Logging into Intellifire...");
         request.post({url: "https://iftapi.net/a//login", jar: this.cookieJar}, (e, r, b) => {
-            api.on('didFinishLaunching', () => {
-                this.registerFireplaces();
-            });
+            this.log.info(`Logged in with response ${r.statusCode}.`)
+            api.on('didFinishLaunching', this.registerFireplaces);
         }).form({username: this.config.username, password: this.config.password});
     }
 
@@ -72,6 +71,7 @@ class IntellifirePlatform {
      */
     configureAccessory(accessory) {
         this.accessories.push(accessory);
+        this.log.info(`Creating fireplace for ${accessory.name}.`);
         this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
     }
 
@@ -82,6 +82,8 @@ class Fireplace {
     constructor(log, accessory, cookieJar) {
         this.accessory = accessory;
         this.cookieJar = cookieJar;
+        this.name = accessory.name;
+        this.serialNumber = accessory.context.serialNumber;
 
         const service = accessory.getService(Service.Switch);
         service.getCharacteristic(Characteristic.On)
@@ -98,6 +100,7 @@ class Fireplace {
         if (this.pullTimer)
             this.pullTimer.resetTimer();
 
+        this.log.info(`Querying for status on ${this.name}.`);
         request.get({url: `https://iftapi.net/a/${this.serialNumber}//apppoll`, jar: this.cookieJar}, (e, r, b) => {
             let data = JSON.parse(b);
             callback(null, (data.power === "1"));
