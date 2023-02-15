@@ -17,7 +17,7 @@ class IntellifirePlatform {
         this.api = api;
         this.cookieJar = request.jar();
 
-        this.log.debug("Logging into Intellifire...");
+        this.log.info("Logging into Intellifire...");
         request.post({url: "https://iftapi.net/a//login", jar: this.cookieJar}, (e, r, b) => {
             api.on('didFinishLaunching', () => {
                 this.registerFireplaces();
@@ -28,19 +28,19 @@ class IntellifirePlatform {
     registerFireplaces() {
 //	this.log.debug("Logging into Intellifire...");
         //       request.post({ url: "https://iftapi.net/a//login", jar: this.cookieJar}, (e, r, b) => {
-        this.log.debug("Discovering locations...");
+        this.log.info("Discovering locations...");
         request.get({url: "https://iftapi.net/a//enumlocations", jar: this.cookieJar}, (e, r, b) => {
             let data = JSON.parse(b);
             let location_id = data.locations[0].location_id;
-            this.log.debug("Discovering fireplaces...");
+            this.log.info("Discovering fireplaces...");
             request.get({
                 url: `https://iftapi.net/a//enumfireplaces?location_id=${location_id}`,
                 jar: this.cookieJar
             }, (e, r, b) => {
                 let data = JSON.parse(b);
-                this.log.debug(`Found ${data.fireplaces.length} fireplaces.`);
+                this.log.info(`Found ${data.fireplaces.length} fireplaces.`);
                 data.fireplaces.forEach((f) => {
-                    this.log.debug(`Registering ${f.name}...`);
+                    this.log.info(`Registering ${f.name}...`);
                     const uuid = this.api.hap.uuid.generate(f.serial);
                     if (!this.accessories.find(accessory => accessory.UUID === uuid)) {
                         // create a new accessory
@@ -57,7 +57,7 @@ class IntellifirePlatform {
                         //accessory.addService(informationService);
                         accessory.addService(new Service.Switch(accessory.name));
 
-                        this.log.debug(`Registering fireplae ${accessory.name} with serial ${accessory.context.serialNumber}`);
+                        this.log.info(`Registering fireplae ${accessory.name} with serial ${accessory.context.serialNumber}`);
                         this.api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
                     }
                 });
