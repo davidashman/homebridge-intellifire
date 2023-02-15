@@ -23,16 +23,6 @@ class IntellifirePlatform {
                 this.registerFireplaces();
             })
         })
-
-        //         // this.api.on('didFinishLaunching', this.registerFireplaces);
-        //         this.registerFireplaces();
-        // await rp.post({url: "https://iftapi.net/a//login", jar: this.cookieJar, form: {username: this.config.username, password: this.config.password}})
-        //     .then((r) => {
-        //         this.log.info(`Logged in with response ${r.statusCode}.`)
-        //         // this.api.on('didFinishLaunching', this.registerFireplaces);
-        //         this.registerFireplaces();
-        //     })
-        // })
     }
 
     async _login() {
@@ -52,13 +42,13 @@ class IntellifirePlatform {
     async registerFireplaces() {
         this.log.info("Discovering locations...");
         let r = await fetch(this.cookieJar, "https://iftapi.net/a//enumlocations");
-        let data = r.json();
+        let data = await r.json();
         this.log.info(data);
         let location_id = data.locations[0].location_id;
 
         this.log.info("Discovering fireplaces...");
         r = await fetch(this.cookieJar, `https://iftapi.net/a//enumfireplaces?location_id=${location_id}`);
-        data = r.json();
+        data = await r.json();
         this.log.info(data);
         this.log.info(`Found ${data.fireplaces.length} fireplaces.`);
 
@@ -120,14 +110,11 @@ class Fireplace {
             this.pullTimer.resetTimer();
 
         this.log.info(`Querying for status on ${this.name}.`);
-
         fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`).then((r) => {
-            callback(null, (r.json().power === "1"));
+            r.json().then((data) => {
+                callback(null, (data.power === "1"));
+            })
         })
-        // request.get({url: `https://iftapi.net/a/${this.serialNumber}//apppoll`, jar: this.cookieJar}, (e, r, b) => {
-        //     let data = JSON.parse(b);
-        //     callback(null, (data.power === "1"));
-        // });
     }
 
     setStatus(on, callback) {
@@ -142,10 +129,6 @@ class Fireplace {
         }).then(() => {
             callback();
         });
-
-        // request.post({url: `https://iftapi.net/a/${this.serialNumber}//apppost`, jar: this.cookieJar}, (e, r, b) => {
-        //     callback();
-        // }).form({power: (on ? 1 : 0)});
     }
 
 }
