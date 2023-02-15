@@ -45,6 +45,7 @@ class IntellifirePlatform {
                     if (!this.accessories.find(accessory => accessory.UUID === uuid)) {
                         // create a new accessory
                         const accessory = new this.api.platformAccessory(f.name, uuid);
+                        accessory.context.fireplaceName = f.name;
                         accessory.context.serialNumber = f.serial;
                         accessory.context.firmwareVersion = '1.0';
 
@@ -55,9 +56,12 @@ class IntellifirePlatform {
                         //    .setCharacteristic(Characteristic.SerialNumber, accessory.context.serialNumber)
                         //    .setCharacteristic(Characteristic.FirmwareRevision, accessory.context.firmwareVersion);
                         //accessory.addService(informationService);
-                        accessory.addService(new Service.Switch(accessory.name));
+                        accessory.addService(new Service.Switch(accessory.context.fireplaceName));
+                        
+                        this.log.info(`Creating fireplace for ${accessory.context.fireplaceName}.`);
+                        this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
 
-                        this.log.info(`Registering fireplae ${accessory.name} with serial ${accessory.context.serialNumber}`);
+                        this.log.info(`Registering fireplace ${accessory.context.fireplaceName} with serial ${accessory.context.serialNumber}`);
                         this.api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
                     }
                 });
@@ -72,7 +76,7 @@ class IntellifirePlatform {
      */
     configureAccessory(accessory) {
         this.accessories.push(accessory);
-        this.log.info(`Creating fireplace for ${accessory.name}.`);
+        this.log.info(`Creating fireplace for ${accessory.context.fireplaceName}.`);
         this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
     }
 
@@ -83,7 +87,7 @@ class Fireplace {
     constructor(log, accessory, cookieJar) {
         this.accessory = accessory;
         this.cookieJar = cookieJar;
-        this.name = accessory.name;
+        this.name = accessory.context.fireplaceName;
         this.serialNumber = accessory.context.serialNumber;
 
         const service = accessory.getService(Service.Switch);
