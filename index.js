@@ -131,7 +131,7 @@ class Fireplace {
             response.json().then((data) => {
                 this.log(`Status response: ${data.power === "0" ? "off" : "on"}`);
                 this.power = (data.power === "1");
-                callback(null, this.power);
+                callback(this.power);
             })
         })
     }
