@@ -1,7 +1,7 @@
 "use strict";
 
 import {fetch, CookieJar} from 'node-fetch-cookies';
-import { http } from 'homebridge-http-base';
+import http from 'homebridge-http-base';
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 
