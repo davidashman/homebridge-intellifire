@@ -136,7 +136,7 @@ class Fireplace {
             fetch(this.cookieJar, `http://192.168.1.188/poll`).then((response) => {
                 this.log(`Response from Intellifire: ${response.statusText}`);
                 response.json().then((data) => {
-                    this.log(`Status response: ${data.power === "0" ? "off" : "on"}`);
+                    this.log(`Status response: ${data.power} = ${data.power === "0" ? "off" : "on"}`);
                     this.power = (data.power === "1");
                     callback(null, this.power);
                 })
@@ -146,7 +146,7 @@ class Fireplace {
             fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`).then((response) => {
                 this.log(`Response from Intellifire: ${response.statusText}`);
                 response.json().then((data) => {
-                    this.log(`Status response: ${data.power === "0" ? "off" : "on"}`);
+                    this.log(`Status response: ${data.power} = ${data.power === "0" ? "off" : "on"}`);
                     this.power = (data.power === "1");
                     callback(null, this.power);
                 })
