@@ -53,9 +53,13 @@ class IntellifirePlatform {
         this.log.info(`Found ${data.fireplaces.length} fireplaces.`);
 
         data.fireplaces.forEach((f) => {
-            this.log.info(`Registering ${f.name}...`);
             const uuid = this.api.hap.uuid.generate(f.serial);
-            if (!this.accessories.find(accessory => accessory.UUID === uuid)) {
+            if (this.accessories.find(accessory => accessory.UUID === uuid)) {
+                this.log.info(`Skipping ${f.name}...`);
+            }
+            else {
+                this.log.info(`Registering ${f.name}...`);
+
                 // create a new accessory
                 const accessory = new this.api.platformAccessory(f.name, uuid);
                 accessory.context.fireplaceName = f.name;
@@ -63,7 +67,7 @@ class IntellifirePlatform {
                 accessory.context.firmwareVersion = '1.0';
                 accessory.addService(new Service.Switch(accessory.context.fireplaceName));
 
-                this.log.info(`Creating fireplace for ${accessory.context.fireplaceName}.`);
+                this.log.info(`Creating fireplace for ${accessory.context.fireplaceName} with serial number ${accessory.context.serialNumber} and UUID ${accessory.UUID}.`);
                 this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
 
                 this.log.info(`Registering fireplace ${accessory.context.fireplaceName} with serial ${accessory.context.serialNumber}`);
@@ -81,7 +85,7 @@ class IntellifirePlatform {
             this.accessories.push(accessory);
             if (accessory.context.serialNumber) {
                 if (!this.fireplaces.find(fireplace => fireplace.serialNumber === accessory.context.serialNumber)) {
-                    this.log.info(`Creating fireplace for ${accessory.context.fireplaceName}.`);
+                    this.log.info(`Creating fireplace for existing accessory ${accessory.context.fireplaceName} with serial number ${accessory.context.serialNumber} and UUID ${accessory.UUID}.`);
                     this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
                 }
             }
