@@ -135,12 +135,11 @@ class Fireplace {
         if (this.local) {
             fetch(this.cookieJar, `http://192.168.1.188/poll`).then((response) => {
                 this.log(`Response from Intellifire: ${response.statusText}`);
-                response.text().then(text => { this.log.info(`Text: ${text}`)});
-                // response.json().then((data) => {
-                //     this.log(`Status response: ${JSON.stringify(data)} = ${data.power === "0" ? "off" : "on"}`);
-                //     this.power = (data.power === "1");
-                //     callback(null, this.power);
-                // })
+                response.json().then((data) => {
+                    this.log(`Status response: ${JSON.stringify(data)} = ${data.power === "0" ? "off" : "on"}`);
+                    this.power = (data.power === "1");
+                    callback(null, this.power);
+                })
             });
         }
         else {
