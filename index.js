@@ -19,7 +19,7 @@ class IntellifirePlatform {
         this.api = api;
         this.cookieJar = new CookieJar();
         this.login = this._login();
-        this.local = true;
+        this.local = false;
 
         this.api.on('didFinishLaunching', () => {
             this.login.then(() => {
