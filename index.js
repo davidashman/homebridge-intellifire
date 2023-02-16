@@ -67,6 +67,11 @@ class IntellifirePlatform {
                 accessory.context.apiKey = f.apikey;
                 accessory.addService(new Service.Switch(accessory.context.fireplaceName));
 
+                accessory.getService(Service.AccessoryInformation)
+                    .setCharacteristic(Characteristic.Manufacturer, 'Hearth and Home')
+                    .setCharacteristic(Characteristic.Model, f.brand)
+                    .setCharacteristic(Characteristic.SerialNumber, f.serial);
+
                 this.log.info(`Creating fireplace for ${accessory.context.fireplaceName} with serial number ${accessory.context.serialNumber} and UUID ${accessory.UUID}.`);
                 this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
 
