@@ -61,11 +61,11 @@ class IntellifirePlatform {
                 this.log.info(`Registering ${f.name}...`);
 
                 // create a new accessory
-                const accessory = new this.api.platformAccessory(f.name, uuid);
+                const accessory = new this.api.platformAccessory(`${f.name} Fireplace`, uuid);
                 accessory.context.fireplaceName = f.name;
                 accessory.context.serialNumber = f.serial;
                 accessory.context.apiKey = f.apikey;
-                accessory.addService(new Service.Switch(accessory.context.fireplaceName));
+                accessory.addService(new Service.Switch(`${f.name} Fireplace`));
 
                 this.log.info(`Creating fireplace for ${accessory.context.fireplaceName} with serial number ${accessory.context.serialNumber} and UUID ${accessory.UUID}.`);
                 this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
@@ -110,10 +110,6 @@ class Fireplace {
         this.apiKeyBuffer = Buffer.from(accessory.context.apiKey);
         this.userId = cookieJar.cookies.get('iftapi.net').get('user').value;
 
-        accessory.getService(Service.AccessoryInformation)
-            .setCharacteristic(Characteristic.Manufacturer, 'Hearth and Home')
-            .setCharacteristic(Characteristic.SerialNumber, this.serialNumber);
-
         this.service = accessory.getService(Service.Switch);
         this.service.getCharacteristic(Characteristic.On)
             .on("get", (callback) => {
@@ -124,6 +120,7 @@ class Fireplace {
             });
 
         this.queryStatus((e, v) => { this.log.info(`Initial status: ${v}`)});
+
         this.pullTimer = new http.PullTimer(log, 60000, (callback) => {
             this.pullTimer.resetTimer();
             this.queryStatus(callback);
@@ -140,6 +137,13 @@ class Fireplace {
                 this.log(`Response from Intellifire: ${response.statusText}`);
                 response.json().then((data) => {
                     this.log(`Status response: ${JSON.stringify(data)} = ${data.power === "0" ? "off" : "on"}`);
+
+                    this.accessory.getService(Service.AccessoryInformation)
+                        .setCharacteristic(Characteristic.Manufacturer, 'Hearth and Home')
+                        .setCharacteristic(Characteristic.Model, data.brand)
+                        .setCharacteristic(Characteristic.FirmwareRevision, data.firmware_version_string)
+                        .setCharacteristic(Characteristic.SerialNumber, this.serialNumber);
+
                     this.power = (data.power === "1");
                     callback(null, this.power);
                 })
