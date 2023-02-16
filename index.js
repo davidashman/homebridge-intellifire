@@ -67,11 +67,6 @@ class IntellifirePlatform {
                 accessory.context.apiKey = f.apikey;
                 accessory.addService(new Service.Switch(accessory.context.fireplaceName));
 
-                accessory.getService(Service.AccessoryInformation)
-                    .setCharacteristic(Characteristic.Manufacturer, 'Hearth and Home')
-                    .setCharacteristic(Characteristic.Model, f.brand)
-                    .setCharacteristic(Characteristic.SerialNumber, f.serial);
-
                 this.log.info(`Creating fireplace for ${accessory.context.fireplaceName} with serial number ${accessory.context.serialNumber} and UUID ${accessory.UUID}.`);
                 this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
 
@@ -114,6 +109,10 @@ class Fireplace {
         this.localIP = localIP;
         this.apiKeyBuffer = Buffer.from(accessory.context.apiKey);
         this.userId = cookieJar.cookies.get('iftapi.net').get('user').value;
+
+        accessory.getService(Service.AccessoryInformation)
+            .setCharacteristic(Characteristic.Manufacturer, 'Hearth and Home')
+            .setCharacteristic(Characteristic.SerialNumber, this.serialNumber);
 
         this.service = accessory.getService(Service.Switch);
         this.service.getCharacteristic(Characteristic.On)
