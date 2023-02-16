@@ -130,6 +130,14 @@ class Fireplace {
         this.pullTimer.start();
     }
 
+    updateAccessoryInformation(data) {
+        this.accessory.getService(Service.AccessoryInformation)
+            .setCharacteristic(Characteristic.Manufacturer, 'Hearth and Home')
+            .setCharacteristic(Characteristic.Model, data.brand)
+            .setCharacteristic(Characteristic.FirmwareRevision, data.firmware_version_string)
+            .setCharacteristic(Characteristic.SerialNumber, this.serialNumber);
+    }
+
     queryStatus(callback) {
         this.log.info(`Querying for status on ${this.name}.`);
         if (this.localIP) {
@@ -137,13 +145,7 @@ class Fireplace {
                 this.log(`Response from Intellifire: ${response.statusText}`);
                 response.json().then((data) => {
                     this.log(`Status response: ${JSON.stringify(data)} = ${data.power === "0" ? "off" : "on"}`);
-
-                    this.accessory.getService(Service.AccessoryInformation)
-                        .setCharacteristic(Characteristic.Manufacturer, 'Hearth and Home')
-                        .setCharacteristic(Characteristic.Model, data.brand)
-                        .setCharacteristic(Characteristic.FirmwareRevision, data.firmware_version_string)
-                        .setCharacteristic(Characteristic.SerialNumber, this.serialNumber);
-
+                    this.updateAccessoryInformation(data);
                     this.power = (data.power === "1");
                     callback(null, this.power);
                 })
@@ -154,6 +156,7 @@ class Fireplace {
                 this.log(`Response from Intellifire: ${response.statusText}`);
                 response.json().then((data) => {
                     this.log(`Status response: ${JSON.stringify(data)} = ${data.power === "0" ? "off" : "on"}`);
+                    this.updateAccessoryInformation(data);
                     this.power = (data.power === "1");
                     callback(null, this.power);
                 })
