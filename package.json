@@ -1,8 +1,8 @@
 {
   "name": "homebridge-intellifire",
   "version": "0.1.0",
-  "description": "Intellifire support",
-  "license": "ISC",
+  "description": "Intellifire support for Homebridge",
+  "license": "MIT",
   "type": "module",
   "keywords": [
     "homebridge-plugin"
@@ -24,9 +24,7 @@
   "dependencies": {
     "homebridge-http-base": "~2.1.13",
     "node-fetch": "^3.3.0",
-    "node-fetch-cookies": "^2.0.4",
-    "request": "~2.88.2",
-    "request-promise-native": "^1.0.9"
+    "node-fetch-cookies": "^2.0.4"
   },
   "devDependencies": {
     "homebridge": "^1.5.0"
