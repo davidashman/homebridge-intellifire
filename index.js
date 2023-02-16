@@ -19,7 +19,6 @@ class IntellifirePlatform {
         this.api = api;
         this.cookieJar = new CookieJar();
         this.login = this._login();
-        this.local = false;
 
         this.api.on('didFinishLaunching', () => {
             this.login.then(() => {
@@ -69,7 +68,7 @@ class IntellifirePlatform {
                 accessory.addService(new Service.Switch(accessory.context.fireplaceName));
 
                 this.log.info(`Creating fireplace for ${accessory.context.fireplaceName} with serial number ${accessory.context.serialNumber} and UUID ${accessory.UUID}.`);
-                this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar, this.local));
+                this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
 
                 this.log.info(`Registering fireplace ${accessory.context.fireplaceName} with serial ${accessory.context.serialNumber}`);
                 this.api.registerPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
@@ -87,7 +86,7 @@ class IntellifirePlatform {
                 this.accessories.push(accessory);
                 if (!this.fireplaces.find(fireplace => fireplace.serialNumber === accessory.context.serialNumber)) {
                     this.log.info(`Creating fireplace for existing accessory ${accessory.context.fireplaceName} with serial number ${accessory.context.serialNumber} and UUID ${accessory.UUID}.`);
-                    this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar, this.local));
+                    this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
                 }
             }
             else {
@@ -100,14 +99,14 @@ class IntellifirePlatform {
 
 class Fireplace {
 
-    constructor(log, accessory, cookieJar, local) {
+    constructor(log, accessory, cookieJar, localIP) {
         this.log = log;
         this.accessory = accessory;
         this.cookieJar = cookieJar;
         this.name = accessory.context.fireplaceName;
         this.serialNumber = accessory.context.serialNumber;
         this.power = false;
-        this.local = local;
+        this.localIP = localIP;
         this.apiKeyBuffer = Buffer.from(accessory.context.apiKey);
         this.userId = cookieJar.cookies.get('iftapi.net').get('user').value;
 
@@ -132,8 +131,8 @@ class Fireplace {
 
     queryStatus(callback) {
         this.log.info(`Querying for status on ${this.name}.`);
-        if (this.local) {
-            fetch(this.cookieJar, `http://192.168.1.188/poll`).then((response) => {
+        if (this.localIP) {
+            fetch(this.cookieJar, `http://${this.localIP}/poll`).then((response) => {
                 this.log(`Response from Intellifire: ${response.statusText}`);
                 response.json().then((data) => {
                     this.log(`Status response: ${JSON.stringify(data)} = ${data.power === "0" ? "off" : "on"}`);
@@ -146,7 +145,7 @@ class Fireplace {
             fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`).then((response) => {
                 this.log(`Response from Intellifire: ${response.statusText}`);
                 response.json().then((data) => {
-                    this.log(`Status response: ${data.power} = ${data.power === "0" ? "off" : "on"}`);
+                    this.log(`Status response: ${JSON.stringify(data)} = ${data.power === "0" ? "off" : "on"}`);
                     this.power = (data.power === "1");
                     callback(null, this.power);
                 })
@@ -155,8 +154,8 @@ class Fireplace {
     }
 
     setStatus(on, callback) {
-        if (this.local) {
-            fetch(this.cookieJar, `http://192.168.1.188/get_challenge`)
+        if (this.localIP) {
+            fetch(this.cookieJar, `http://${this.localIP}/get_challenge`)
                 .then((response) => {
                     if (response.ok) {
                         response.text().then(challenge => {
@@ -171,7 +170,7 @@ class Fireplace {
                             params.append("user", this.userId);
                             params.append("response", resp);
 
-                            fetch(this.cookieJar, 'http://192.168.1.188/post', {
+                            fetch(this.cookieJar, 'http://${this.localIP}/post', {
                                 method: 'POST',
                                 body: params
                             }).then(response => {
