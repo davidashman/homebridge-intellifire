@@ -207,7 +207,6 @@ class Fireplace {
                 body: params
             }).then((response) => {
                 if (response.ok) {
-                    this.power = on;
                     this.log.info(`Fireplace update response: ${response.status}`);
                 }
                 else {
