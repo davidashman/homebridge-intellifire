@@ -131,7 +131,8 @@ class Fireplace {
                 minValue: 1,
                 maxValue: 5,
                 minStep: 1
-            });
+            })
+            .updateValue(1);
 
         this.queryStatus();
 
@@ -229,11 +230,11 @@ class Fireplace {
     }
 
     setPower(on) {
-        this.setStatus("power", (on ? "1" : "0"), callback);
+        this.setStatus("power", (on ? "1" : "0"));
     }
 
     setHeight(value) {
-        this.setStatus("height", value.toString(), callback);
+        this.setStatus("height", value.toString());
     }
 }
 
