@@ -65,7 +65,7 @@ class IntellifirePlatform {
                 accessory.context.serialNumber = f.serial;
                 accessory.context.apiKey = f.apikey;
                 accessory.addService(new Service.Switch(`${f.name} Fireplace`));
-                accessory.addService(new Service.Lightbulb(`${f.name} Fireplace`));
+                // accessory.addService(new Service.Lightbulb(`${f.name} Fireplace`));
                 // accessory.addService(new Service.Fan(`${f.name} Fireplace`));
 
                 this.log.info(`Creating fireplace for ${accessory.context.fireplaceName} with serial number ${accessory.context.serialNumber} and UUID ${accessory.UUID}.`);
@@ -112,21 +112,15 @@ class Fireplace {
 
         const power = accessory.getService(Service.Switch);
         power.getCharacteristic(Characteristic.On)
-            // .on("get", (callback) => {
-            //     callback(null, this.power);
-            // })
             .onSet((value) => {
                 this.setPower(value);
             });
 
-        const height = accessory.getService(Service.Lightbulb);
-        height.getCharacteristic(Characteristic.Brightness)
-            // .on("get", (callback) => {
-            //     callback(null, this.power);
-            // })
-            .onSet((value) => {
-                this.setHeight(value);
-            });
+        // const height = accessory.getService(Service.Lightbulb);
+        // height.getCharacteristic(Characteristic.Brightness)
+        //     .onSet((value) => {
+        //         this.setHeight(value);
+        //     });
 
         this.queryStatus();
 
@@ -146,9 +140,9 @@ class Fireplace {
             .getCharacteristic(Characteristic.On)
             .updateValue(data.power === "1");
 
-        this.accessory.getService(Service.Lightbulb)
-            .getCharacteristic(Characteristic.Brightness)
-            .updateValue(parseInt(data.height) * 20);
+        // this.accessory.getService(Service.Lightbulb)
+        //     .getCharacteristic(Characteristic.Brightness)
+        //     .updateValue(parseInt(data.height) * 20);
     }
 
     queryStatus() {
