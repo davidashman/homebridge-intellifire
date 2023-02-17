@@ -126,13 +126,7 @@ class Fireplace {
             // })
             .onSet((value) => {
                 this.setHeight(value);
-            })
-            .setProps({
-                minValue: 1,
-                maxValue: 5,
-                minStep: 1
-            })
-            .updateValue(1);
+            });
 
         this.queryStatus();
 
@@ -154,7 +148,7 @@ class Fireplace {
 
         this.accessory.getService(Service.Lightbulb)
             .getCharacteristic(Characteristic.Brightness)
-            .updateValue(parseInt(data.height));
+            .updateValue(parseInt(data.height) * 20);
     }
 
     queryStatus() {
@@ -234,7 +228,7 @@ class Fireplace {
     }
 
     setHeight(value) {
-        this.setStatus("height", value.toString());
+        this.setStatus("height", Math.round(value / 20).toString());
     }
 }
 
