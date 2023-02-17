@@ -22,7 +22,6 @@
     "homebridge": ">=0.4.8"
   },
   "dependencies": {
-    "homebridge-http-base": "~2.1.13",
     "node-fetch": "^3.3.0",
     "node-fetch-cookies": "^2.0.4"
   },

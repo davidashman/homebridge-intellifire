@@ -1,7 +1,6 @@
 "use strict";
 
 import {fetch, CookieJar} from 'node-fetch-cookies';
-import http from 'homebridge-http-base';
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 
@@ -66,6 +65,8 @@ class IntellifirePlatform {
                 accessory.context.serialNumber = f.serial;
                 accessory.context.apiKey = f.apikey;
                 accessory.addService(new Service.Switch(`${f.name} Fireplace`));
+                accessory.addService(new Service.Lightbulb(`${f.name} Fireplace`));
+                // accessory.addService(new Service.Fan(`${f.name} Fireplace`));
 
                 this.log.info(`Creating fireplace for ${accessory.context.fireplaceName} with serial number ${accessory.context.serialNumber} and UUID ${accessory.UUID}.`);
                 this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
@@ -105,49 +106,64 @@ class Fireplace {
         this.cookieJar = cookieJar;
         this.name = accessory.context.fireplaceName;
         this.serialNumber = accessory.context.serialNumber;
-        this.power = false;
         this.localIP = localIP;
         this.apiKeyBuffer = Buffer.from(accessory.context.apiKey);
         this.userId = cookieJar.cookies.get('iftapi.net').get('user').value;
 
-        this.service = accessory.getService(Service.Switch);
-        this.service.getCharacteristic(Characteristic.On)
-            .on("get", (callback) => {
-                callback(null, this.power);
-            })
-            .on("set", (value, callback) => {
-                this.setStatus(value, callback);
+        const power = accessory.getService(Service.Switch);
+        power.getCharacteristic(Characteristic.On)
+            // .on("get", (callback) => {
+            //     callback(null, this.power);
+            // })
+            .onSet((value) => {
+                this.setPower(value);
             });
 
-        this.queryStatus((e, v) => { this.log.info(`Initial status: ${v}`)});
+        const height = accessory.getService(Service.Lightbulb);
+        height.getCharacteristic(Characteristic.Brightness)
+            // .on("get", (callback) => {
+            //     callback(null, this.power);
+            // })
+            .onSet((value) => {
+                this.setHeight(value);
+            })
+            .setProps({
+                minValue: 1,
+                maxValue: 5,
+                minStep: 1
+            });
 
-        this.pullTimer = new http.PullTimer(log, 60000, (callback) => {
-            this.pullTimer.resetTimer();
-            this.queryStatus(callback);
-        }, value => {
-            this.service.getCharacteristic(Characteristic.On).updateValue(value);
-        });
-        this.pullTimer.start();
+        this.queryStatus();
+
+        setInterval(() => {
+            this.queryStatus();
+        }, 60000);
     }
 
-    updateAccessoryInformation(data) {
+    updateStatus(data) {
         this.accessory.getService(Service.AccessoryInformation)
             .setCharacteristic(Characteristic.Manufacturer, 'Hearth and Home')
             .setCharacteristic(Characteristic.Model, data.brand)
             .setCharacteristic(Characteristic.FirmwareRevision, data.firmware_version_string)
             .setCharacteristic(Characteristic.SerialNumber, this.serialNumber);
+
+        this.accessory.getService(Service.Switch)
+            .getCharacteristic(Characteristic.On)
+            .updateValue(data.power === "1");
+
+        this.accessory.getService(Service.Lightbulb)
+            .getCharacteristic(Characteristic.Brightness)
+            .updateValue(parseInt(data.height));
     }
 
-    queryStatus(callback) {
+    queryStatus() {
         this.log.info(`Querying for status on ${this.name}.`);
         if (this.localIP) {
             fetch(this.cookieJar, `http://${this.localIP}/poll`).then((response) => {
                 this.log(`Response from Intellifire: ${response.statusText}`);
                 response.json().then((data) => {
-                    this.log(`Status response: ${JSON.stringify(data)} = ${data.power === "0" ? "off" : "on"}`);
-                    this.updateAccessoryInformation(data);
-                    this.power = (data.power === "1");
-                    callback(null, this.power);
+                    this.log(`Status response: ${JSON.stringify(data)}`);
+                    this.updateStatus(data);
                 })
             });
         }
@@ -155,29 +171,27 @@ class Fireplace {
             fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppoll`).then((response) => {
                 this.log(`Response from Intellifire: ${response.statusText}`);
                 response.json().then((data) => {
-                    this.log(`Status response: ${JSON.stringify(data)} = ${data.power === "0" ? "off" : "on"}`);
-                    this.updateAccessoryInformation(data);
-                    this.power = (data.power === "1");
-                    callback(null, this.power);
+                    this.log(`Status response: ${JSON.stringify(data)}`);
+                    this.updateStatus(data);
                 })
             });
         }
     }
 
-    setStatus(on, callback) {
+    setStatus(command, value) {
         if (this.localIP) {
             fetch(this.cookieJar, `http://${this.localIP}/get_challenge`)
                 .then((response) => {
                     if (response.ok) {
                         response.text().then(challenge => {
                             const challengeBuffer = Buffer.from(challenge, 'hex');
-                            const payloadBuffer = Buffer.from(`power=(on ? "1" : "0"))`);
+                            const payloadBuffer = Buffer.from(`${command}=${value})`);
                             const sig = createHash('sha256').update(Buffer.concat([this.apiKeyBuffer, challengeBuffer, payloadBuffer])).digest();
                             const resp = createHash('sha256').update(Buffer.concat([this.apiKeyBuffer, sig])).digest('hex');
 
                             const params = new URLSearchParams();
-                            params.append("command", "power");
-                            params.append("value", (on ? "1" : "0"));
+                            params.append("command", command);
+                            params.append("value", value);
                             params.append("user", this.userId);
                             params.append("response", resp);
 
@@ -186,21 +200,18 @@ class Fireplace {
                                 body: params
                             }).then(response => {
                                 this.power = on;
-                                this.log.info(`Fireplace ${this.name} power changed to ${on}`);
-                                response.text().then((text) => { this.log.info(`Fireplace update response: ${text}`) });
-                                callback();
+                                this.log.info(`Fireplace update response: ${response.status}`);
                             })
                         });
                     }
                     else {
                         this.log.info(`Fireplace ${this.name} power failed to update: ${response.statusText}`);
-                        callback(response.statusText);
                     }
                 });
         }
         else {
             const params = new URLSearchParams();
-            params.append("power", (on ? "1" : "0"));
+            params.append(command, value);
 
             fetch(this.cookieJar, `https://iftapi.net/a/${this.serialNumber}//apppost`, {
                 method: "POST",
@@ -208,18 +219,22 @@ class Fireplace {
             }).then((response) => {
                 if (response.ok) {
                     this.power = on;
-                    this.log.info(`Fireplace ${this.name} power changed to ${on}: ${response.statusText}`);
-                    response.text().then((text) => { this.log.info(`Fireplace update response: ${text}`) });
-                    callback();
+                    this.log.info(`Fireplace update response: ${response.status}`);
                 }
                 else {
                     this.log.info(`Fireplace ${this.name} power failed to update: ${response.statusText}`);
-                    callback(response.statusText);
                 }
             });
         }
     }
 
+    setPower(on) {
+        this.setStatus("power", (on ? "1" : "0"), callback);
+    }
+
+    setHeight(value) {
+        this.setStatus("height", value.toString(), callback);
+    }
 }
 
 const platform = (api) => {
