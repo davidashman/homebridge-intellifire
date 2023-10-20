@@ -68,6 +68,8 @@ class IntellifirePlatform {
                 // accessory.addService(new Service.Lightbulb(`${f.name} Fireplace`));
                 // accessory.addService(new Service.Fan(`${f.name} Fireplace`));
 
+                accessory.addService(new Service.ContactSensor(`${f.name} Fireplace Sensor`));
+
                 this.log.info(`Creating fireplace for ${accessory.context.fireplaceName} with serial number ${accessory.context.serialNumber} and UUID ${accessory.UUID}.`);
                 this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
 
@@ -84,6 +86,10 @@ class IntellifirePlatform {
     configureAccessory(accessory) {
         this.login.then(() => {
             if (accessory.context.apiKey) {
+                if (!accessory.getService(Service.ContactSensor)) {
+                    accessory.addService(new Service.ContactSensor(`${accessory.context.fireplaceName} Fireplace Sensor`));
+                }
+
                 this.accessories.push(accessory);
                 if (!this.fireplaces.find(fireplace => fireplace.serialNumber === accessory.context.serialNumber)) {
                     this.log.info(`Creating fireplace for existing accessory ${accessory.context.fireplaceName} with serial number ${accessory.context.serialNumber} and UUID ${accessory.UUID}.`);
@@ -115,6 +121,11 @@ class Fireplace {
             .onSet((value) => {
                 this.setPower(value);
             });
+        power.getCharacteristic(Characteristic.On)
+            .on("change", (change) => {
+                if (change.newValue != change.oldValue)
+                    this.updateSensor(change.newValue);
+            });
 
         // const height = accessory.getService(Service.Lightbulb);
         // height.getCharacteristic(Characteristic.Brightness)
@@ -127,6 +138,12 @@ class Fireplace {
         setInterval(() => {
             this.queryStatus();
         }, 60000);
+    }
+
+    updateSensor(value) {
+        this.accessory.getService(Service.ContactSensor)
+            .getCharacteristic(Characteristic.ContactSensorState)
+            .updateValue(value ? 1 : 0);
     }
 
     updateStatus(data) {
@@ -168,6 +185,7 @@ class Fireplace {
     }
 
     setStatus(command, value) {
+        this.log.info(`Setting fireplace ${this.name} status to ${value}`);
         if (this.localIP) {
             fetch(this.cookieJar, `http://${this.localIP}/get_challenge`)
                 .then((response) => {
