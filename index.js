@@ -64,11 +64,8 @@ class IntellifirePlatform {
                 accessory.context.fireplaceName = f.name;
                 accessory.context.serialNumber = f.serial;
                 accessory.context.apiKey = f.apikey;
-                accessory.addService(new Service.Switch(`${f.name} Fireplace`));
-                // accessory.addService(new Service.Lightbulb(`${f.name} Fireplace`));
-                // accessory.addService(new Service.Fan(`${f.name} Fireplace`));
 
-                accessory.addService(new Service.ContactSensor(`${f.name} Fireplace Sensor`));
+                this.checkServices(accessory);
 
                 this.log.info(`Creating fireplace for ${accessory.context.fireplaceName} with serial number ${accessory.context.serialNumber} and UUID ${accessory.UUID}.`);
                 this.fireplaces.push(new Fireplace(this.log, accessory, this.cookieJar));
@@ -86,10 +83,7 @@ class IntellifirePlatform {
     configureAccessory(accessory) {
         this.login.then(() => {
             if (accessory.context.apiKey) {
-                if (!accessory.getService(Service.ContactSensor)) {
-                    accessory.addService(new Service.ContactSensor(`${accessory.context.fireplaceName} Fireplace Sensor`));
-                }
-
+                this.checkServices(accessory);
                 this.accessories.push(accessory);
                 if (!this.fireplaces.find(fireplace => fireplace.serialNumber === accessory.context.serialNumber)) {
                     this.log.info(`Creating fireplace for existing accessory ${accessory.context.fireplaceName} with serial number ${accessory.context.serialNumber} and UUID ${accessory.UUID}.`);
@@ -100,6 +94,27 @@ class IntellifirePlatform {
                 this.api.unregisterPlatformAccessories('homebridge-intellifire', 'Intellifire', [accessory]);
             }
         })
+    }
+
+    checkServices(accessory) {
+        if (!accessory.getService(Service.Switch)) {
+            accessory.addService(new Service.Switch(`${accessory.context.fireplaceName} Fireplace`));
+        }
+
+        // if (!accessory.getService(Service.Fan)) {
+        //     const height = new Service.Fan(`${accessory.context.fireplaceName} Fireplace Flame`);
+        //     height.addCharacteristic(Characteristic.RotationSpeed)
+        //         .setProps({
+        //             minValue: 1,
+        //             maxValue: 5,
+        //             minStep: 1
+        //         });
+        //     accessory.addService(height);
+        // }
+
+        if (!accessory.getService(Service.ContactSensor)) {
+            accessory.addService(new Service.ContactSensor(`${accessory.context.fireplaceName} Fireplace Sensor`));
+        }
     }
 
 }
@@ -115,6 +130,8 @@ class Fireplace {
         this.localIP = localIP;
         this.apiKeyBuffer = Buffer.from(accessory.context.apiKey);
         this.userId = cookieJar.cookies.get('iftapi.net').get('user').value;
+        this.on = false;
+        this.height = 4;
 
         const power = accessory.getService(Service.Switch);
         power.getCharacteristic(Characteristic.On)
@@ -127,8 +144,8 @@ class Fireplace {
                     this.updateSensor(change.newValue);
             });
 
-        // const height = accessory.getService(Service.Lightbulb);
-        // height.getCharacteristic(Characteristic.Brightness)
+        // const height = accessory.getService(Service.Fan);
+        // height.getCharacteristic(Characteristic.RotationSpeed)
         //     .onSet((value) => {
         //         this.setHeight(value);
         //     });
@@ -147,6 +164,9 @@ class Fireplace {
     }
 
     updateStatus(data) {
+        this.on = data.power === "1";
+        this.height = parseInt(data.height);
+
         this.accessory.getService(Service.AccessoryInformation)
             .setCharacteristic(Characteristic.Manufacturer, 'Hearth and Home')
             .setCharacteristic(Characteristic.Model, data.brand)
@@ -155,11 +175,11 @@ class Fireplace {
 
         this.accessory.getService(Service.Switch)
             .getCharacteristic(Characteristic.On)
-            .updateValue(data.power === "1");
+            .updateValue(this.on);
 
-        // this.accessory.getService(Service.Lightbulb)
-        //     .getCharacteristic(Characteristic.Brightness)
-        //     .updateValue(parseInt(data.height) * 20);
+        this.accessory.getService(Service.Fan)
+            .getCharacteristic(Characteristic.RotationSpeed)
+            .updateValue(this.height);
     }
 
     queryStatus() {
@@ -184,8 +204,8 @@ class Fireplace {
         }
     }
 
-    setStatus(command, value) {
-        this.log.info(`Setting fireplace ${this.name} status to ${value}`);
+    sendFireplaceCommand(command, value) {
+        this.log.info(`Setting ${command} on fireplace ${this.name} status to ${value}`);
         if (this.localIP) {
             fetch(this.cookieJar, `http://${this.localIP}/get_challenge`)
                 .then((response) => {
@@ -210,13 +230,11 @@ class Fireplace {
                                 this.log.info(`Fireplace update response: ${response.status}`);
                             })
                         });
-                    }
-                    else {
+                    } else {
                         this.log.info(`Fireplace ${this.name} power failed to update: ${response.statusText}`);
                     }
                 });
-        }
-        else {
+        } else {
             const params = new URLSearchParams();
             params.append(command, value);
 
@@ -226,20 +244,25 @@ class Fireplace {
             }).then((response) => {
                 if (response.ok) {
                     this.log.info(`Fireplace update response: ${response.status}`);
-                }
-                else {
+                } else {
                     this.log.info(`Fireplace ${this.name} power failed to update: ${response.statusText}`);
                 }
             });
         }
     }
 
-    setPower(on) {
-        this.setStatus("power", (on ? "1" : "0"));
+    setPower(value) {
+        if (value != this.on) {
+            this.on = value;
+            this.sendFireplaceCommand("power", (on ? "1" : "0"));
+        }
     }
 
     setHeight(value) {
-        this.setStatus("height", Math.round(value / 20).toString());
+        if (value != this.height) {
+            this.height = value;
+            this.sendFireplaceCommand("height", `${value}`);
+        }
     }
 }
 
